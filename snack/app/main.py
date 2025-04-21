@@ -6,6 +6,7 @@ import os
 from config.cors_config import CorsConfig
 from weather.controller.weather_controller import weatherRouter
 from chat_history.controller.chat_history_controller import chatHistoryRouter
+from llm.controller.llm_controller import llmRouter
 
 load_dotenv()
 
@@ -15,6 +16,7 @@ CorsConfig.middlewareConfig(app)
 
 app.include_router(weatherRouter)
 app.include_router(chatHistoryRouter)
+app.include_router(llmRouter)
 
 
 if __name__ == "__main__":

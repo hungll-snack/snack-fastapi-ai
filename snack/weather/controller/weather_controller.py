@@ -14,3 +14,11 @@ async def get_weather(
     print("controller -> get_weather()")
     result = weatherService.get_seoul_weather()
     return JSONResponse(content=result)
+
+@weatherRouter.get("/weather/seoul/forecast")
+async def get_weather_forecast(
+    weatherService: WeatherServiceImpl = Depends(injectWeatherService)
+):
+    print("controller -> get_weather_forecast()")
+    result = weatherService.get_vilage_fcst()
+    return JSONResponse(content=result)
