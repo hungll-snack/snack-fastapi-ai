@@ -6,7 +6,7 @@ services:
     ports:
 	    - "${FASTAPI_PORT}:${FASTAPI_PORT}"
     env_file:
-      - .env
+      - ./ai/.env
     networks:
       - app
 
