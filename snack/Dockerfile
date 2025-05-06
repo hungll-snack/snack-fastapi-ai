@@ -1,10 +1,12 @@
 FROM python:3.12
 
-COPY . /app
-WORKDIR /app/app  # ⬅️ app/main.py가 있는 곳
+WORKDIR /app
 
-RUN pip install --no-cache-dir -r ../requirements.txt
+COPY ./requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY . .
 
 EXPOSE 33333
 
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "33333"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "33333"]
