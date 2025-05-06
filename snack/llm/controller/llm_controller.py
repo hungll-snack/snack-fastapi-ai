@@ -5,13 +5,17 @@ from llm.service.llm_service_impl import LLMServiceImpl
 from llm.service.prompt_builder import PromptBuilder
 from weather.service.weather_service_impl import WeatherServiceImpl
 import requests
+import dotenv
+import os
 
 llmRouter = APIRouter()
 
-DJANGO_BASE_URL = "http://django-backend"
+dotenv.load_dotenv()
+
+DJANGO_BASE_URL = os.getenv("DJANGO_BASE_URL")
 
 def fetch_user_preference(account_id):
-    url = f"{DJANGO_BASE_URL}/api/account-prefer/{account_id}/"
+    url = f"{DJANGO_BASE_URL}/account-prefer/{account_id}"
     response = requests.get(url)
     return response.json() if response.status_code == 200 else None
 
