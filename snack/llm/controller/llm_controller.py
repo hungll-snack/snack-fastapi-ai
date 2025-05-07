@@ -10,12 +10,11 @@ import os
 
 llmRouter = APIRouter()
 
-dotenv.load_dotenv()
-
-DJANGO_BASE_URL = os.getenv("DJANGO_BASE_URL")
 
 def fetch_user_preference(account_id):
-    url = f"{DJANGO_BASE_URL}/account-prefer/{account_id}"
+    base_url = os.getenv("DJANGO_BASE_URL", "http://localhost:8000")
+    url = f"{base_url}/account-prefer/{account_id}"
+    print(f"[DEBUG] 요청 URL: {url}")
     response = requests.get(url)
     return response.json() if response.status_code == 200 else None
 
@@ -35,14 +34,19 @@ async def search_llm(
     # ✅ Django API 호출로 선호 정보 가져오기
     prefer = fetch_user_preference(account_id)
     if not prefer:
-        return JSONResponse(status_code=404, content={"message": "선호 정보 없음"})
+        print(f"[경고] account_id={account_id}의 선호도 정보 없음 — 기본 프롬프트로 진행")
+        prefer = {}  # 비어 있는 dict로 처리
 
     weather = WeatherServiceImpl().get_seoul_weather()
 
-    # ✅ JSON 선호 데이터를 PromptBuilder가 인식할 수 있도록 가공 필요
     builder = PromptBuilder(prefer_model=prefer, weather=weather)
     prompt = builder.build_prompt(query)
 
     answer = llmService.get_response_from_openai(prompt)
+    if not answer:
+        answer = "응답이 없습니다"
 
-    return JSONResponse(content={"response": answer})
+    return JSONResponse(content={
+        "response": answer  # ✅ 프론트와 맞춤
+    })
+
