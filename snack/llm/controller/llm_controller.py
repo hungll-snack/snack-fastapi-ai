@@ -7,6 +7,7 @@ from weather.service.weather_service_impl import WeatherServiceImpl
 import requests
 import dotenv
 import os
+from rag.rag_pipeline import run_rag
 
 llmRouter = APIRouter()
 

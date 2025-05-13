@@ -1,5 +1,7 @@
 from openai import OpenAI
 import os
+from rag.embedder import get_embedding
+from rag.faiss_index import search
 
 class LLMServiceImpl:
     def __init__(self):
@@ -9,12 +11,23 @@ class LLMServiceImpl:
         )
 
     def get_response_from_openai(self, prompt: str) -> str:
+        #rag
+        query_embedding = get_embedding(prompt)
+        similar_restaurants = search(query_embedding)
+
+        extra_context = "\n".join([
+            f"{r['name']} ({r['address']}) 평점: {r['rating']}" for r in similar_restaurants
+        ])
+        #여기부턴 prompt
+        prompt += f"\n📍 관련 맛집 정보:\n{extra_context}"
+
         print(f"🔍 프롬프트:\n{prompt}")
         try:
             response = self.client.chat.completions.create(
                 model="gpt-3.5-turbo",
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.7,
+                stream=True
             )
             result = response.choices[0].message.content
             print(f"✅ 응답 결과: {result}")
