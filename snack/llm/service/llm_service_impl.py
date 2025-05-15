@@ -1,37 +1,37 @@
-from openai import OpenAI
 import os
 from rag.embedder import get_embedding
-from rag.faiss_index import search
+from rag.faiss_index import search as faiss_search
+from langchain_core.tracers import LangChainTracer
+from langchain_openai import ChatOpenAI
+
 
 class LLMServiceImpl:
     def __init__(self):
-        self.client = OpenAI(
+        self.tracer = LangChainTracer(project_name=os.getenv("LANGCHAIN_PROJECT"))
+        self.llm = ChatOpenAI(
             api_key=os.getenv("OPENAI_API_KEY"),
-            timeout=10  # ✅ 여기서 timeout 설정
+            streaming=True,
+            temperature=0.7,
+            callbacks=[self.tracer],
+            model="gpt-3.5-turbo"
         )
 
-    def get_response_from_openai(self, prompt: str) -> str:
-        #rag
-        query_embedding = get_embedding(prompt)
-        similar_restaurants = search(query_embedding)
-
-        extra_context = "\n".join([
-            f"{r['name']} ({r['address']}) 평점: {r['rating']}" for r in similar_restaurants
-        ])
-        #여기부턴 prompt
-        prompt += f"\n📍 관련 맛집 정보:\n{extra_context}"
-
+    def get_streaming_openai_response(self, prompt: str):
         print(f"🔍 프롬프트:\n{prompt}")
+
         try:
-            response = self.client.chat.completions.create(
-                model="gpt-3.5-turbo",
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.7,
-                stream=True
-            )
-            result = response.choices[0].message.content
-            print(f"✅ 응답 결과: {result}")
-            return result
+            # RAG 적용
+            embedding = get_embedding(prompt)
+            related_restaurants = faiss_search(embedding, top_k=3)
+
+            restaurant_info = "\n".join([
+                f"- {r['name']} ({r['address']})" for r in related_restaurants
+            ])
+            prompt += f"\n\n📌 [참고 가능한 식당 정보]\n{restaurant_info}"
+
+            # Streaming 응답 generator 반환
+            return self.llm.stream(prompt)
+
         except Exception as e:
-            print(f"❌ OpenAI 호출 실패: {e}")
-            return "미안해요! 헝글이 딱맞는 대답을 찾기위해 알아보고있어요 💡"
+            print(f"❌ OpenAI 스트리밍 실패: {e}")
+            return iter([])  # 빈 generator 반환

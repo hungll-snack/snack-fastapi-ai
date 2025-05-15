@@ -1,16 +1,13 @@
+# llm_controller.py
 from fastapi import APIRouter, Request, Depends, Header
-from fastapi.responses import JSONResponse
-from datetime import datetime
+from fastapi.responses import StreamingResponse
 from llm.service.llm_service_impl import LLMServiceImpl
 from llm.service.prompt_builder import PromptBuilder
 from weather.service.weather_service_impl import WeatherServiceImpl
 import requests
-import dotenv
 import os
-from rag.rag_pipeline import run_rag
 
 llmRouter = APIRouter()
-
 
 def fetch_user_preference(account_id):
     base_url = os.getenv("DJANGO_BASE_URL", "http://localhost:8000")
@@ -30,24 +27,28 @@ async def search_llm(
     query = data.get("query")
 
     if not query or not account_id:
-        return JSONResponse(status_code=400, content={"message": "query/account_id 누락"})
+        return StreamingResponse(
+            content=iter(["[오류] query 또는 account_id가 누락되었습니다."]),
+            media_type="text/plain"
+        )
 
-    # ✅ Django API 호출로 선호 정보 가져오기
     prefer = fetch_user_preference(account_id)
     if not prefer:
         print(f"[경고] account_id={account_id}의 선호도 정보 없음 — 기본 프롬프트로 진행")
-        prefer = {}  # 비어 있는 dict로 처리
+        prefer = {}
 
     weather = WeatherServiceImpl().get_seoul_weather()
-
     builder = PromptBuilder(prefer_model=prefer, weather=weather)
     prompt = builder.build_prompt(query)
 
-    answer = llmService.get_response_from_openai(prompt)
-    if not answer:
-        answer = "응답이 없습니다"
+    stream = llmService.get_streaming_openai_response(prompt)
 
-    return JSONResponse(content={
-        "response": answer  # ✅ 프론트와 맞춤
-    })
+    def generate():
+        for chunk in stream:
+            try:
+                yield chunk.content
+            except Exception as e:
+                print(f"❌ 스트리밍 처리 중 오류: {e}")
+                continue
 
+    return StreamingResponse(generate(), media_type="text/plain")
