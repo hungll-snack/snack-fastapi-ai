@@ -46,9 +46,19 @@ async def search_llm(
     def generate():
         for chunk in stream:
             try:
+                print("🔹 sending:", chunk.content)
                 yield chunk.content
             except Exception as e:
                 print(f"❌ 스트리밍 처리 중 오류: {e}")
                 continue
 
-    return StreamingResponse(generate(), media_type="text/plain")
+    return_response = StreamingResponse(generate(), media_type="text/plain")
+    return_response.headers["Access-Control-Expose-Headers"] = "usertoken, account-id, authorization, transfer-encoding"
+    return_response.headers["usertoken"] = usertoken
+    return_response.headers["account-id"] = account_id
+    return_response.headers["authorization"] = f"Bearer {usertoken}"
+    return_response.headers["transfer-encoding"] = "chunked"
+    return_response.headers["Content-Type"] = "text/plain"
+    return_response.headers["Cache-Control"] = "no-cache"
+
+    return return_response
