@@ -54,11 +54,8 @@ async def search_llm(
 
     return_response = StreamingResponse(generate(), media_type="text/plain")
     return_response.headers["Access-Control-Expose-Headers"] = "usertoken, account-id, authorization, transfer-encoding"
-    return_response.headers["usertoken"] = usertoken
-    return_response.headers["account-id"] = account_id
-    return_response.headers["authorization"] = f"Bearer {usertoken}"
     return_response.headers["transfer-encoding"] = "chunked"
-    return_response.headers["Content-Type"] = "text/plain"
+    return_response.headers["Content-Type"] = "text/event-stream"
     return_response.headers["Cache-Control"] = "no-cache"
 
     return return_response
